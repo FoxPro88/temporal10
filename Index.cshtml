@@ -1,0 +1,203 @@
+﻿@page
+@model AwsCoreEcar.Dashboard.Pages.PagoNiubiz.IndexModel
+@{
+    ViewData["Title"] = "Niubiz - Pago App";
+}
+
+
+@section scripts{
+
+    <script type="text/javascript" src="https://static-content-qas.vnforapps.com/v2/js/checkout.js"></script>
+
+    <script type="text/javascript">function openForm() {
+
+
+    var token       = document.getElementById("token").value;
+    var sesionToken = document.getElementById("sesiontoken").value;
+    var merchantId = document.getElementById("merchantid").value;
+    var purchaseNumber = document.getElementById("purchasenumber").value;
+    
+            VisanetCheckout.configure({
+                sessiontoken: sesionToken,
+                channel: 'web',
+                merchantid: merchantId,
+                purchasenumber: purchaseNumber,
+                amount: '20.50',
+                expirationminutes: '20',
+                timeouturl: 'about:blank',
+                merchantlogo: 'img/comercio.png',
+                formbuttoncolor: '#000000',
+                action: 'https://ecarfront.guardsoft.pe/pagoniubiz?message=success&merchantid=' + merchantId +
+                    '&purchasenumber=' + purchaseNumber +
+                    '&token=' + token,
+                handleMessage: function (params) {
+                    alert(JSON.stringify(params));
+                },
+                complete: function (params) {
+                    alert(JSON.stringify(params));
+                }
+            });
+            VisanetCheckout.open();
+        }</script>
+
+    <script type="text/javascript">$(function () {
+            $("#AjaxGetToken").submit(function (e) {
+                e.preventDefault();
+
+                // Mostramos el Ajax Loader
+                $("#AjaxLoader").show("fast");
+
+                // Deshabilitamos el botón de Submit
+                $("#SubmitBtn").prop("disabled", true);
+
+         
+                $.ajax({
+                    type: "GET",
+                    url: "https://apitestenv.vnforapps.com/api.security/v1/security",
+                    headers: {
+                        "Authorization": "Basic Z2lhbmNhZ2FsbGFyZG9AZ21haWwuY29tOkF2MyR0cnV6"
+                    }
+
+                })
+                    .done(function (resultToken) {
+
+                        if (resultToken != null) {
+
+                            $("#token").val(resultToken);
+
+                            var jsonData = {
+                                channel: "web",
+                                amount: 20.50,
+                                antifraud: {
+                                    clientIp: "24.252.107.29",
+                                    merchantDefineData: {
+                                        1: "Test",
+                                        20: "Merchant",
+                                        30: "Test3"
+                                    }
+                                }
+                            };
+
+
+                            var merchantId = document.getElementById("merchantid").value;
+
+                            $.ajax({
+                                type: "POST",
+                                dataType: "json",
+                                data: JSON.stringify(jsonData),
+                                url: "https://apitestenv.vnforapps.com/api.ecommerce/v2/ecommerce/token/session/" + merchantId,
+                                headers: {
+                                    "Authorization": resultToken,
+                                    "Content-Type": "application/json"
+                                }
+
+                            })
+                                .done(function (result) {
+
+                                    $("#AjaxLoader").hide("slow");
+
+                                    $("#SubmitBtn").prop("disabled", false);
+
+                                    $("#ExitoAlert").show("slow").delay(5000).hide("slow");
+
+                                    if (result != null) {
+
+                                        $("#sesiontoken").val(result.sessionKey);
+
+                                    }
+
+                                })
+                                .fail(function (xhr, status, error) {
+                                    $("#ErrorAlert").show("slow").delay(5000).hide("slow");
+
+                                    $("#AjaxLoader").hide("slow");
+
+                                    $("#SubmitBtn").prop("disabled", false);
+
+                                })
+
+                            $("#SubmitBtn").prop("disabled", false);
+
+                            $("#ExitoAlert").show("slow").delay(5000).hide("slow");
+
+                        }
+
+                    })
+                    .fail(function (xhr, status, error) {
+                        $("#ErrorAlert").show("slow").delay(5000).hide("slow");
+
+                        $("#AjaxLoader").hide("slow");
+
+                        $("#SubmitBtn").prop("disabled", false);
+
+                    })
+                    .always(function () {
+
+
+                    });
+            });
+        });</script>
+}
+
+<h2>Niubiz Integraciones - Pago App</h2>
+
+<input type="hidden" id="transactiontoken" name="transactiontoken" value='@Model.Transactiontoken' />
+
+<div>
+    <form id="AjaxGetToken">
+
+        <div class="row">
+
+            <div class="col-md-12">
+                <div class="form-group">
+                    <input id="merchantid" class="form-control input-sm" placeholder="Codigo de Comercio" value="341198210" />
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="form-group">
+                    <input id="purchasenumber" class="form-control input-sm" placeholder="Numero de Pedido" value="2020100902" />
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="form-group">
+                    <textarea id="token" class="form-control" placeholder="Token de Seguridad"></textarea>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="form-group">
+                    <input id="sesiontoken" class="form-control input-sm" placeholder="Sesion Token" />
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row">
+            <div class="col-md-9">
+                <div id="ErrorAlert" class="alert alert-danger" style="display:none" role="alert">
+                    Error en los datos enviados!
+                </div>
+                <div id="ExitoAlert" class="alert alert-success" style="display:none" role="alert">
+                    Datos recibidos correctamente!
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group float-right">
+                    <img id="AjaxLoader" alt="Enviando ..."
+                         style="display:none" width="150"
+                         src="@Url.Content("~/images/loading.gif")" />
+                    &nbsp;&nbsp;
+                    <button id="SubmitBtn" type="submit" class="btn btn-primary">
+                        Generar token y sesion de seguridad
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div>
+    <button onclick="openForm();">Pagar</button>
+</div>
